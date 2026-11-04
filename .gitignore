@@ -9,3 +9,4 @@ __pycache__/
 backend/chroma_db/
 backend/static/*.mp3
 *.mp4
+*.tsbuildinfo
