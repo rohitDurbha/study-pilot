@@ -16,6 +16,62 @@ When the score falls, an adaptive state machine suggests switching to a differen
 
 The Flask backend splits documents into sections, generates and caches the flashcards, quizzes and mind maps for each one, and stores sessions, focus events and chat history in SQLite. Routine agent decisions such as welcomes, section completion and prerequisite checks come from a deterministic engine, which keeps language model calls for content generation and free-form chat.
 
+## Running it locally
+
+You need Node.js 18 or newer and Python 3.9 or newer. Until roadmap item 2 replaces the provider, the backend still talks to Anthropic, so you also need an `ANTHROPIC_API_KEY` for anything that generates content.
+
+Install the frontend dependencies from the repository root and start the dev server, which listens on http://localhost:3000 by default.
+
+```bash
+npm install
+npm run dev
+```
+
+In a second terminal, create a virtual environment for the backend, install its requirements and copy the example environment file.
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env    # then put your key in .env
+python3 main.py
+```
+
+The API listens on http://127.0.0.1:5005, which matches `BACKEND_API_URL` in `app/lib/constants.ts`. The first document you index downloads the all-MiniLM-L6-v2 embedding model (about 80 MB), so that upload takes noticeably longer than the ones after it.
+
+### A quick tour
+
+1. Open http://localhost:3000 and click **+ Add Source** to upload a PDF, text or markdown file.
+2. Wait while the backend splits the document into sections and the agent introduces the material.
+3. Read a section and click **Done with this section** so the agent can offer a quiz or move you along.
+4. Allow camera access if you want focus tracking, and the agent will suggest a new format whenever your focus drops.
+5. Open the **Study Assistant** chat in the bottom right and switch between Quick answers and Deep Search, which cites the source passages.
+6. Try commands such as `quiz me`, `flashcards`, `next section` or `mind map`, and check the sidebar for session analytics and the knowledge graph.
+
+### Evaluating retrieval
+
+The backend ships a small harness that compares retrieval augmented answers against answers built from the full document. You can drive it from the command line inside `backend/` with the ID of a document you have already uploaded.
+
+```bash
+python3 eval_harness.py generate <document_id>   # create test questions
+python3 eval_harness.py run <document_id>        # run both answer modes
+python3 eval_harness.py list <document_id>       # list past runs
+python3 eval_harness.py detail <run_id>          # show one run in detail
+```
+
+The same actions are available over HTTP while the server is running.
+
+```bash
+curl -X POST http://127.0.0.1:5005/api/rag/reindex/<document_id>
+curl -X POST http://127.0.0.1:5005/api/eval/generate-tests/<document_id>
+curl -X POST http://127.0.0.1:5005/api/eval/run/<document_id>
+curl http://127.0.0.1:5005/api/eval/runs/<document_id>
+curl http://127.0.0.1:5005/api/eval/detail/<run_id>
+```
+
+The 39 MB demo video from the upstream project was not imported, so the video tab has nothing to play yet. Roadmap step 1c will let it load from a configurable URL or hide itself when no URL is set.
+
 ## Project layout
 
 The Next.js frontend lives at the repository root and the Flask API lives in `backend/`.
