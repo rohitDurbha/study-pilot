@@ -70,7 +70,7 @@ curl http://127.0.0.1:5005/api/eval/runs/<document_id>
 curl http://127.0.0.1:5005/api/eval/detail/<run_id>
 ```
 
-The 39 MB demo video from the upstream project was not imported, so the video tab has nothing to play yet. Roadmap step 1c will let it load from a configurable URL or hide itself when no URL is set.
+The 39 MB demo video from the upstream project was not imported. If you want the video component to play something, copy `.env.example` to `.env.local` in the repository root and set `NEXT_PUBLIC_DEMO_VIDEO_URL` to an MP4 you host yourself, and leave it empty to keep the video hidden.
 
 ## Project layout
 
