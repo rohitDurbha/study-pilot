@@ -38,6 +38,8 @@ cp .env.example .env    # then put your key in .env
 python3 main.py
 ```
 
+To confirm the install worked before you start the server, run `python3 check_imports.py` in the same folder. It imports every backend module and prints which ones failed and why. If you skipped `sentence-transformers` to avoid downloading PyTorch, pass `--allow-missing sentence_transformers` so the retrieval modules are reported as skipped rather than failed.
+
 The API listens on http://127.0.0.1:5005, which matches `BACKEND_API_URL` in `app/lib/constants.ts`. The first document you index downloads the all-MiniLM-L6-v2 embedding model (about 80 MB), so that upload takes noticeably longer than the ones after it.
 
 ### A quick tour
