@@ -7,7 +7,7 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
   - [x] b. Write a README that credits the original team (Mahesh Cheekuri, Puneeth Regonda, Siri Chandana Uppula and Sunil Vurandur), explains the layout and lists the local setup steps from the upstream SETUP_AND_RUN.md.
   - [x] c. Check that the backend modules import cleanly in a fresh virtualenv, add npm scripts for typecheck, and handle the missing demo video. The upstream public/brainRot.mp4 (39 MB) was left out of the import, so the video tab in app/ui/main-display/content/video-content.tsx should load it from a configurable URL or hide itself when none is set.
 - [ ] 2. Replace the paid Anthropic calls (six files) with one provider module. Groq free tier is the default and Gemini free tier is the fallback, with model names in one config.
-  - [ ] a. Add backend/llm.py, one provider module that sends chat and PDF prompts to Groq first and falls back to Gemini, with the model names and timeouts in one config read from environment variables. Talk to both through their plain HTTP APIs so no extra SDK is needed, and cover it with pytest tests that mock the network.
+  - [x] a. Add backend/llm.py, one provider module that sends chat and PDF prompts to Groq first and falls back to Gemini, with the model names and timeouts in one config read from environment variables. Talk to both through their plain HTTP APIs so no extra SDK is needed, and cover it with pytest tests that mock the network.
   - [ ] b. Move main.py and study_agent.py onto the new module, including the chat history, system prompts and token usage that study_agent.py reports.
   - [ ] c. Move document_processor.py, knowledge_graph.py and eval_harness.py onto the module, then drop the anthropic package from requirements.txt and ANTHROPIC_API_KEY from the env example and check_imports.py.
   - [ ] d. Add a small live smoke script that sends one prompt to each configured provider, and document the provider settings in the README.
@@ -20,6 +20,6 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
 
 ## Needs Rohit
 
-- Create free Groq and Gemini API keys and add them as GROQ_API_KEY and GEMINI_API_KEY before item 2 can be tried end to end.
+- Create free Groq and Gemini API keys and add them as GROQ_API_KEY and GEMINI_API_KEY in backend/.env before item 2 can be tried end to end. backend/llm.py already reads them and falls back from Groq to Gemini.
 - Vercel and Hugging Face accounts for item 7.
 - Optional. Host the original demo clip somewhere public and set NEXT_PUBLIC_DEMO_VIDEO_URL if you want the video component to show it.
