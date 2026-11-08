@@ -25,6 +25,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Ordered so that shared modules are reported before the ones that use them.
 MODULES = [
+    "llm",
     "database",
     "agent_engine",
     "document_processor",
