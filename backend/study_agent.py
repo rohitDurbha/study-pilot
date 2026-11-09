@@ -1,12 +1,28 @@
 """Agentic study assistant — the brain of StudyBuddy."""
-import json
-import anthropic
-import os
 from dotenv import load_dotenv
 
+import llm
+
 load_dotenv()
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-20250514"
+
+CHAT_MAX_TOKENS = 1024
+RECAP_MAX_TOKENS = 256
+
+
+def _history(conversation_history: list) -> list:
+    """Keep the earlier user and assistant turns that have text.
+
+    The frontend sends the whole chat log, so anything else (an empty
+    message or a role the providers do not accept) is dropped here instead
+    of failing the request.
+    """
+    turns = []
+    for entry in conversation_history or []:
+        role = entry.get("role")
+        content = (entry.get("content") or "").strip()
+        if role in ("user", "assistant") and content:
+            turns.append({"role": role, "content": content})
+    return turns
 
 
 def build_agent_context(
@@ -84,28 +100,14 @@ def chat_with_agent(
         quiz_performance=quiz_performance,
     )
 
-    # Build messages from history
-    messages = []
-    for entry in conversation_history:
-        messages.append({
-            "role": entry["role"],
-            "content": entry["content"],
-        })
-
-    # Add current message
-    messages.append({
-        "role": "user",
-        "content": user_message,
-    })
-
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=1024,
+    response = llm.generate(
+        user_message,
         system=system_prompt,
-        messages=messages,
+        messages=_history(conversation_history),
+        max_tokens=CHAT_MAX_TOKENS,
     )
 
-    return response.content[0].text.strip()
+    return response.text
 
 
 def chat_with_agent_rag(
@@ -154,18 +156,15 @@ YOUR ROLE:
     if quiz_performance:
         system_prompt += f"\nQUIZ: {quiz_performance.get('correct', 0)}/{quiz_performance.get('total', 0)} correct\n"
 
-    messages = [{"role": e["role"], "content": e["content"]} for e in conversation_history]
-    messages.append({"role": "user", "content": user_message})
-
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=1024,
+    response = llm.generate(
+        user_message,
         system=system_prompt,
-        messages=messages,
+        messages=_history(conversation_history),
+        max_tokens=CHAT_MAX_TOKENS,
     )
 
     return {
-        "response": response.content[0].text.strip(),
+        "response": response.text,
         "sources": [
             {
                 "text": c["text"][:200],
@@ -176,9 +175,11 @@ YOUR ROLE:
             for c in chunks
         ],
         "usage": {
-            "input_tokens": response.usage.input_tokens,
-            "output_tokens": response.usage.output_tokens,
+            "input_tokens": response.input_tokens,
+            "output_tokens": response.output_tokens,
         },
+        "provider": response.provider,
+        "model": response.model,
     }
 
 
@@ -203,10 +204,4 @@ Write a 2-3 sentence recap of where they were and what comes next.
 Be warm but brief. Don't mention the distraction duration or make them feel guilty.
 Just help them pick up where they left off."""
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=256,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    return response.content[0].text.strip()
+    return llm.generate_text(prompt, max_tokens=RECAP_MAX_TOKENS)
