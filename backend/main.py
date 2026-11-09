@@ -3,12 +3,12 @@ import re
 import json
 import os
 import logging
-import base64
 
-import anthropic
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+import llm
 
 # Setup
 logging.basicConfig(level=logging.DEBUG)
@@ -17,52 +17,21 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-20250514"
+DEFAULT_MAX_TOKENS = 4096
 
 
-def ask_claude(prompt: str, max_tokens: int = 4096) -> str:
-    """Send a text-only prompt to Claude."""
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return message.content[0].text.strip()
+def ask_llm(prompt: str, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
+    """Send a text prompt to the configured providers (Groq first, then Gemini)."""
+    return llm.generate_text(prompt, max_tokens=max_tokens)
 
 
-def ask_claude_with_pdf(pdf_bytes: bytes, prompt: str, max_tokens: int = 4096) -> str:
-    """Send a PDF document + prompt to Claude. Claude sees the full PDF natively."""
-    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
-
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=max_tokens,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "document",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "application/pdf",
-                            "data": pdf_b64,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt,
-                    },
-                ],
-            }
-        ],
-    )
-    return message.content[0].text.strip()
+def ask_llm_with_pdf(pdf_bytes: bytes, prompt: str, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
+    """Send a PDF and a prompt. Groq gets the extracted text, Gemini reads the PDF itself."""
+    return llm.generate_text(prompt, pdf_bytes=pdf_bytes, max_tokens=max_tokens)
 
 
 def extract_json(text: str):
-    """Robustly extract JSON from Claude's response, stripping markdown fences."""
+    """Robustly extract JSON from a model reply, stripping markdown fences."""
     cleaned = re.sub(r"^```(?:json|JSON)?\s*\n?", "", text, flags=re.MULTILINE)
     cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
     cleaned = cleaned.strip()
@@ -235,7 +204,7 @@ Create 5-7 flashcards focused on KEY DEFINITIONS and TERMINOLOGY.
 Return as a raw JSON array only:
 [{{"front": "...", "back": "..."}}]"""
 
-        raw = ask_claude(prompt)
+        raw = ask_llm(prompt)
         cards = extract_json(raw)
 
         result = {
@@ -290,7 +259,7 @@ Each question needs: question, options (4), correctOptionIndex (0-3), explanatio
 Return as a raw JSON array only:
 [{{"question": "...", "options": ["...", "...", "...", "..."], "correctOptionIndex": 2, "explanation": "..."}}]"""
 
-        raw = ask_claude(prompt)
+        raw = ask_llm(prompt)
         questions = extract_json(raw)
 
         result = {
@@ -362,7 +331,7 @@ Return ONLY valid JSON in this exact format, no explanation:
   }}
 }}"""
 
-        raw = ask_claude(prompt)
+        raw = ask_llm(prompt)
         mindmap_data = extract_json(raw)
 
         save_content_cache(document_id, "mindmap", mindmap_data, section_id)
@@ -414,7 +383,7 @@ Return ONLY valid JSON in this exact format, no explanation:
   }}
 }}"""
 
-        raw = ask_claude(prompt)
+        raw = ask_llm(prompt)
         mini_game_data = extract_json(raw)
 
         save_content_cache(document_id, "mini-game", mini_game_data, section_id)
