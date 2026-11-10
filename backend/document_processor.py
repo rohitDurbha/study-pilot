@@ -2,16 +2,16 @@
 import json
 import re
 import uuid
-import base64
 import logging
 
-import anthropic
-import os
 from dotenv import load_dotenv
 
+import llm
+
 load_dotenv()
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-20250514"
+
+# Sectioning a whole document needs room for detailed Markdown in every section.
+SECTION_MAX_TOKENS = 8192
 
 
 def extract_json_from_response(text: str):
@@ -45,8 +45,6 @@ def process_document(pdf_bytes: bytes, filename: str) -> dict:
         }
     }
     """
-    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
-
     prompt = """You are an expert educator. Analyze this document and break it into structured study sections.
 
 For each section:
@@ -100,31 +98,14 @@ Rules:
 - Prerequisites reference concept IDs from the same list
 - Write for a college-level audience"""
 
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=8192,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "document",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "application/pdf",
-                            "data": pdf_b64,
-                        },
-                    },
-                    {
-                        "type": "text",
-                        "text": prompt,
-                    },
-                ],
-            }
-        ],
+    reply = llm.generate_text(
+        prompt,
+        pdf_bytes=pdf_bytes,
+        max_tokens=SECTION_MAX_TOKENS,
+        json_mode=True,
     )
 
-    result = extract_json_from_response(message.content[0].text.strip())
+    result = extract_json_from_response(reply.strip())
 
     # Add IDs to sections
     for i, section in enumerate(result.get("sections", [])):
@@ -184,13 +165,9 @@ Return ONLY valid JSON in this format:
 
 Scale sections to content length: short text gets 2-3 sections, medium gets 3-5, long gets 5-8. Each section should be substantial. Use kebab-case for concept IDs."""
 
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=8192,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    reply = llm.generate_text(prompt, max_tokens=SECTION_MAX_TOKENS, json_mode=True)
 
-    result = extract_json_from_response(message.content[0].text.strip())
+    result = extract_json_from_response(reply.strip())
 
     for i, section in enumerate(result.get("sections", [])):
         section["id"] = f"section-{i + 1}"

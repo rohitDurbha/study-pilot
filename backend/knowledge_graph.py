@@ -1,13 +1,14 @@
-"""Knowledge graph extraction using Claude."""
+"""Knowledge graph extraction through the shared language model module."""
 import json
 import re
-import anthropic
-import os
+
 from dotenv import load_dotenv
 
+import llm
+
 load_dotenv()
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-20250514"
+
+GRAPH_MAX_TOKENS = 4096
 
 
 def extract_json_from_response(text: str):
@@ -57,11 +58,7 @@ Rules:
 - A concept can have zero or more prerequisites
 - Order concepts roughly by learning sequence"""
 
-    message = client.messages.create(
-        model=MODEL,
-        max_tokens=4096,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    reply = llm.generate_text(prompt, max_tokens=GRAPH_MAX_TOKENS, json_mode=True)
 
-    result = extract_json_from_response(message.content[0].text.strip())
+    result = extract_json_from_response(reply.strip())
     return result
