@@ -2,15 +2,15 @@
 RAG Evaluation Harness — generates test sets, runs both pipelines,
 scores with LLM-as-judge, and computes retrieval + generation metrics.
 """
-import os
 import re
 import json
 import time
 import logging
 from datetime import datetime
 
-import anthropic
 from dotenv import load_dotenv
+
+import llm
 
 from database import (
     SessionLocal, Document, DocumentSection,
@@ -20,8 +20,9 @@ from study_agent import chat_with_agent, chat_with_agent_rag
 from rag_pipeline import retrieve_chunks
 
 load_dotenv()
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-MODEL = "claude-sonnet-4-20250514"
+
+TESTSET_MAX_TOKENS = 2048
+JUDGE_MAX_TOKENS = 256
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("eval_harness")
@@ -60,12 +61,7 @@ Return a JSON array only, no other text:
 [{{"question": "...", "answer": "...", "source_excerpt": "exact sentence(s) from text"}}]"""
 
         try:
-            response = client.messages.create(
-                model=MODEL,
-                max_tokens=2048,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = response.content[0].text.strip()
+            raw = llm.generate_text(prompt, max_tokens=TESTSET_MAX_TOKENS).strip()
             raw = re.sub(r"^```(?:json)?\s*\n?", "", raw, flags=re.MULTILINE)
             raw = re.sub(r"\n?```\s*$", "", raw, flags=re.MULTILINE)
             pairs = json.loads(raw.strip())
@@ -127,12 +123,7 @@ Return JSON only, no explanation:
 {{"accuracy": 0.0, "groundedness": 0.0, "relevance": 0.0}}"""
 
     try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=256,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = response.content[0].text.strip()
+        raw = llm.generate_text(prompt, max_tokens=JUDGE_MAX_TOKENS, json_mode=True).strip()
         raw = re.sub(r"^```(?:json)?\s*\n?", "", raw, flags=re.MULTILINE)
         raw = re.sub(r"\n?```\s*$", "", raw, flags=re.MULTILINE)
         return json.loads(raw.strip())
