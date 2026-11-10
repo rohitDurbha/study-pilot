@@ -6,9 +6,8 @@ Run it from a fresh virtual environment after installing requirements.txt.
     python3 check_imports.py --allow-missing sentence_transformers
 
 Importing the modules creates the local SQLite file and the static audio
-folder, both of which are ignored by git. No network calls are made, and a
-placeholder API key is used when none is set so that client construction
-does not fail.
+folder, both of which are ignored by git. No network calls are made and no
+API key is needed, because llm.py only reads its keys when a request is sent.
 
 The --allow-missing flag lets a run pass when the only problem is a package
 you chose not to install, such as sentence_transformers, which pulls in
@@ -62,7 +61,6 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    os.environ.setdefault("ANTHROPIC_API_KEY", "placeholder-for-import-check")
     sys.path.insert(0, BACKEND_DIR)
 
     failures = check(MODULES, set(args.allow_missing))

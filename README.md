@@ -18,7 +18,7 @@ The Flask backend splits documents into sections, generates and caches the flash
 
 ## Running it locally
 
-You need Node.js 18 or newer and Python 3.9 or newer. Until roadmap item 2 replaces the provider, the backend still talks to Anthropic, so you also need an `ANTHROPIC_API_KEY` for anything that generates content.
+You need Node.js 18 or newer and Python 3.9 or newer. Anything that generates content also needs a free `GROQ_API_KEY` from console.groq.com or a free `GEMINI_API_KEY` from aistudio.google.com. Groq is tried first and Gemini takes over when Groq fails or has no key.
 
 Install the frontend dependencies from the repository root and start the dev server, which listens on http://localhost:3000 by default.
 
@@ -34,7 +34,7 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env    # then put your key in .env
+cp .env.example .env    # then put your Groq or Gemini key in .env
 python3 main.py
 ```
 
