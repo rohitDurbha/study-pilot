@@ -33,6 +33,7 @@ MODULES = [
     "study_agent",
     "eval_harness",
     "main",
+    "smoke_llm",
 ]
 
 
