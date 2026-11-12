@@ -40,6 +40,25 @@ python3 main.py
 
 To confirm the install worked before you start the server, run `python3 check_imports.py` in the same folder. It imports every backend module and prints which ones failed and why. If you skipped `sentence-transformers` to avoid downloading PyTorch, pass `--allow-missing sentence_transformers` so the retrieval modules are reported as skipped rather than failed.
 
+### Language model providers
+
+Every prompt the backend sends goes through `backend/llm.py`, which talks to Groq and Gemini over their plain HTTP APIs. Providers are tried in the order given by `LLM_PROVIDERS`, a provider without a key is skipped, and when one fails or returns an empty reply the next one takes the request. Groq cannot read PDF files, so for a PDF the text layer is extracted first, and a scanned PDF or one longer than `LLM_PDF_TEXT_LIMIT` goes straight to Gemini, which reads PDFs natively. All settings live in `backend/.env`.
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `GROQ_API_KEY` | empty | Free key from console.groq.com |
+| `GEMINI_API_KEY` | empty | Free key from aistudio.google.com |
+| `LLM_PROVIDERS` | `groq,gemini` | Order in which providers are tried |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Model used on Groq |
+| `GEMINI_MODEL` | `gemini-flash-latest` | Model used on Gemini |
+| `GROQ_REASONING_EFFORT` | `low` | Reasoning effort for the gpt-oss models on Groq |
+| `LLM_TIMEOUT_SECONDS` | `60` | Timeout for each request |
+| `LLM_PDF_TEXT_LIMIT` | `60000` | Most characters of PDF text sent to Groq |
+
+After setting a key, run `python3 smoke_llm.py` inside `backend/` to send one short prompt to each provider separately. It prints the model, the response time and the token counts for each one, marks a provider without a key as skipped, and exits with a nonzero code if any provider that has a key fails. Use `--provider gemini` to check a single provider and `--json-mode` to confirm that JSON replies parse. Each run sends real requests, so it uses a small slice of your free quota.
+
+### Starting the API
+
 The API listens on http://127.0.0.1:5005, which matches `BACKEND_API_URL` in `app/lib/constants.ts`. The first document you index downloads the all-MiniLM-L6-v2 embedding model (about 80 MB), so that upload takes noticeably longer than the ones after it.
 
 ### A quick tour
@@ -96,6 +115,9 @@ app/
 components/ui/            shared shadcn/ui components
 backend/
   main.py                 every Flask route
+  llm.py                  Groq and Gemini provider module with fallback
+  smoke_llm.py            live check that each provider answers
+  check_imports.py        imports every module to catch missing packages
   database.py             SQLAlchemy models stored in SQLite
   document_processor.py   turns PDFs and text into structured sections
   study_agent.py          chat agent with full context and RAG modes
