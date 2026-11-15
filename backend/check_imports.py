@@ -3,15 +3,15 @@
 Run it from a fresh virtual environment after installing requirements.txt.
 
     python3 check_imports.py
-    python3 check_imports.py --allow-missing chromadb
 
 Importing the modules creates the local SQLite file and the static audio
 folder, both of which are ignored by git. No network calls are made and no
 API key is needed, because llm.py only reads its keys when a request is sent.
 
-The --allow-missing flag lets a run pass when the only problem is a package
-you chose not to install, such as chromadb, which the RAG pipeline still
-uses until roadmap item 3 replaces it with a store in SQLite.
+Every package in requirements.txt is light enough to install everywhere, so
+a normal run should report every module as ok. The --allow-missing flag is
+still there for the rare case where you deliberately leave a package out
+while debugging, and it reports the affected modules as skipped.
 """
 
 import argparse

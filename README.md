@@ -38,7 +38,7 @@ cp .env.example .env    # then put your Groq or Gemini key in .env
 python3 main.py
 ```
 
-To confirm the install worked before you start the server, run `python3 check_imports.py` in the same folder. It imports every backend module and prints which ones failed and why. If you skipped `chromadb`, which is heavy and only stays until the RAG pipeline moves into SQLite, pass `--allow-missing chromadb` so the retrieval modules are reported as skipped rather than failed.
+To confirm the install worked before you start the server, run `python3 check_imports.py` in the same folder. It imports every backend module and prints which ones failed and why. Every module should print `ok`, because none of the requirements pull in PyTorch or a separate vector database any more.
 
 ### Language model providers
 
