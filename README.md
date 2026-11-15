@@ -61,6 +61,14 @@ After setting a key, run `python3 smoke_llm.py` inside `backend/` to send one sh
 
 The API listens on http://127.0.0.1:5005, which matches `BACKEND_API_URL` in `app/lib/constants.ts`. The first document you index downloads the all-MiniLM-L6-v2 embedding model (about 80 MB), so that upload takes noticeably longer than the ones after it.
 
+Retrieval vectors are stored in the same SQLite database as everything else, in the `chunk_embeddings` table. If your database holds documents uploaded before the backend moved off ChromaDB, Deep Search will find nothing in them until they are embedded again. Stop the server and run the reindex script once inside `backend/`, after which the old `backend/chroma_db` folder can be deleted.
+
+```bash
+python3 reindex_rag.py --dry-run    # list documents that have no vectors yet
+python3 reindex_rag.py              # embed them
+python3 reindex_rag.py --all        # rebuild every document, for example after changing EMBEDDING_MODEL
+```
+
 ### A quick tour
 
 1. Open http://localhost:3000 and click **+ Add Source** to upload a PDF, text or markdown file.
