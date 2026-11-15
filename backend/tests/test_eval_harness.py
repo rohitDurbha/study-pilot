@@ -1,7 +1,7 @@
 """Tests for the language model calls in eval_harness.py.
 
-rag_pipeline imports chromadb, which pulls in PyTorch until roadmap item 3
-replaces it. When chromadb is not installed a stand in module is used so the
+rag_pipeline imports chromadb until roadmap item 3 replaces it with a store
+in SQLite. When chromadb is not installed a stand in module is used so the
 harness can still be imported and its prompts tested.
 """
 

@@ -1,20 +1,14 @@
 """RAG Pipeline — chunk, embed, store, retrieve from ChromaDB."""
 import os
 import chromadb
-from sentence_transformers import SentenceTransformer
 
-# Module-level singletons (loaded once at server startup)
-_embedding_model = None
+import embeddings
+
+# Module-level singleton (created once at server startup). The embedding
+# model lives in embeddings.py, which loads it lazily through fastembed.
 _chroma_client = None
 
 CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "chroma_db")
-
-
-def get_embedding_model():
-    global _embedding_model
-    if _embedding_model is None:
-        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return _embedding_model
 
 
 def get_chroma_client():
@@ -86,7 +80,6 @@ def chunk_section(
 
 def embed_and_store(document_id: str, sections: list) -> int:
     """Chunk all sections, embed, and store in ChromaDB. Returns chunk count."""
-    model = get_embedding_model()
     client = get_chroma_client()
     col_name = _collection_name(document_id)
 
@@ -114,7 +107,7 @@ def embed_and_store(document_id: str, sections: list) -> int:
 
     # Batch embed and store
     texts = [c["text"] for c in all_chunks]
-    embeddings = model.encode(texts).tolist()
+    vectors = embeddings.embed_texts(texts).tolist()
     ids = [f"{c['section_id']}_chunk_{c['chunk_index']}" for c in all_chunks]
     metadatas = [
         {
@@ -128,7 +121,7 @@ def embed_and_store(document_id: str, sections: list) -> int:
 
     collection.add(
         ids=ids,
-        embeddings=embeddings,
+        embeddings=vectors,
         documents=texts,
         metadatas=metadatas,
     )
@@ -137,7 +130,6 @@ def embed_and_store(document_id: str, sections: list) -> int:
 
 def retrieve_chunks(document_id: str, query: str, top_k: int = 5) -> list:
     """Embed query and retrieve top-k relevant chunks from ChromaDB."""
-    model = get_embedding_model()
     client = get_chroma_client()
     col_name = _collection_name(document_id)
 
@@ -146,7 +138,7 @@ def retrieve_chunks(document_id: str, query: str, top_k: int = 5) -> list:
     except Exception:
         return []
 
-    query_embedding = model.encode([query]).tolist()
+    query_embedding = [embeddings.embed_query(query).tolist()]
     results = collection.query(
         query_embeddings=query_embedding,
         n_results=min(top_k, collection.count()),

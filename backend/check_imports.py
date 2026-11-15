@@ -3,15 +3,15 @@
 Run it from a fresh virtual environment after installing requirements.txt.
 
     python3 check_imports.py
-    python3 check_imports.py --allow-missing sentence_transformers
+    python3 check_imports.py --allow-missing chromadb
 
 Importing the modules creates the local SQLite file and the static audio
 folder, both of which are ignored by git. No network calls are made and no
 API key is needed, because llm.py only reads its keys when a request is sent.
 
 The --allow-missing flag lets a run pass when the only problem is a package
-you chose not to install, such as sentence_transformers, which pulls in
-PyTorch until roadmap item 3 replaces it.
+you chose not to install, such as chromadb, which the RAG pipeline still
+uses until roadmap item 3 replaces it with a store in SQLite.
 """
 
 import argparse
@@ -25,6 +25,7 @@ BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 # Ordered so that shared modules are reported before the ones that use them.
 MODULES = [
     "llm",
+    "embeddings",
     "database",
     "agent_engine",
     "document_processor",
