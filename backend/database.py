@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Text, Float, Integer, DateTime, JSON, ForeignKey
+from sqlalchemy import create_engine, Column, String, Text, Float, Integer, DateTime, JSON, ForeignKey, LargeBinary
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "studybuddy.db")
@@ -188,6 +188,27 @@ class EvalResult(Base):
     latency_ms = Column(Integer)
     token_count = Column(Integer)
     retrieved_chunks = Column(JSON)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ChunkEmbedding(Base):
+    """One retrievable chunk of a document and its embedding vector.
+
+    The RAG pipeline keeps its vectors here instead of in ChromaDB. Each
+    vector is stored as raw float32 bytes scaled to unit length, so ranking a
+    document's chunks is a single dot product in numpy.
+    """
+
+    __tablename__ = "chunk_embeddings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    document_id = Column(String, index=True, nullable=False)
+    section_id = Column(String)
+    section_title = Column(String)
+    chunk_index = Column(Integer)
+    text = Column(Text, nullable=False)
+    dim = Column(Integer, nullable=False)
+    vector = Column(LargeBinary, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
