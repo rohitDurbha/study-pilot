@@ -1,27 +1,14 @@
-"""Tests for the language model calls in eval_harness.py.
+"""Tests for the language model calls in eval_harness.py."""
 
-rag_pipeline imports chromadb until roadmap item 3 replaces it with a store
-in SQLite. When chromadb is not installed a stand in module is used so the
-harness can still be imported and its prompts tested.
-"""
-
-import importlib.util
 import json
-import sys
-import types
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-if importlib.util.find_spec("chromadb") is None and "rag_pipeline" not in sys.modules:
-    stub = types.ModuleType("rag_pipeline")
-    stub.retrieve_chunks = lambda *args, **kwargs: []
-    sys.modules["rag_pipeline"] = stub
-
-import database  # noqa: E402
-import eval_harness  # noqa: E402
-import llm  # noqa: E402
+import database
+import eval_harness
+import llm
 
 
 @pytest.fixture
