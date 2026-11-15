@@ -84,3 +84,51 @@ def test_missing_provider_keys_surface_as_a_server_error(client, monkeypatch):
 
     assert resp.status_code == 500
     assert "GROQ_API_KEY or GEMINI_API_KEY" in resp.get_json()["error"]
+
+
+def test_rag_reindex_route_stores_chunks_in_sqlite(client, monkeypatch):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    import database
+    import embeddings
+
+    class LetterEmbedder:
+        def embed(self, texts, batch_size=256):
+            for text in texts:
+                yield [text.lower().count("a") + 1, text.lower().count("e") + 1]
+
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    database.Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    monkeypatch.setattr(database, "SessionLocal", Session)
+    monkeypatch.setattr(main, "SessionLocal", Session)
+    embeddings.set_embedder(LetterEmbedder())
+
+    try:
+        db = Session()
+        db.add(database.Document(id="doc-1", filename="notes.pdf"))
+        db.add(database.DocumentSection(
+            id="s1", document_id="doc-1", title="Intro", content="A short intro.", section_order=0
+        ))
+        db.add(database.DocumentSection(
+            id="s2", document_id="doc-1", title="Detail", content="Some more detail.", section_order=1
+        ))
+        db.commit()
+        db.close()
+
+        resp = client.post("/api/rag/reindex/doc-1")
+        missing = client.post("/api/rag/reindex/nope")
+    finally:
+        embeddings.set_embedder(None)
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {"chunks_indexed": 2, "sections": 2}
+    assert missing.status_code == 404
+    db = Session()
+    assert db.query(database.ChunkEmbedding).filter_by(document_id="doc-1").count() == 2
+    db.close()
+    engine.dispose()
