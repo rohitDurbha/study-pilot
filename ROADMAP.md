@@ -12,7 +12,7 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
   - [x] c. Move document_processor.py, knowledge_graph.py and eval_harness.py onto the module, then drop the anthropic package from requirements.txt and ANTHROPIC_API_KEY from the env example and check_imports.py.
   - [x] d. Add a small live smoke script that sends one prompt to each configured provider, and document the provider settings in the README.
 - [ ] 3. Swap sentence-transformers and ChromaDB, which pull in PyTorch, for fastembed and a lightweight store so the backend fits in free hosting.
-  - [ ] a. Put embeddings behind a small module that uses fastembed with the same all-MiniLM-L6-v2 model (ONNX, no PyTorch), with the model name read from an environment variable and pytest tests that use a fake embedder.
+  - [x] a. Put embeddings behind a small module that uses fastembed with the same all-MiniLM-L6-v2 model (ONNX, no PyTorch), with the model name read from an environment variable and pytest tests that use a fake embedder.
   - [ ] b. Replace ChromaDB in rag_pipeline.py with a lightweight store that keeps chunk vectors in the existing SQLite database and ranks them by cosine similarity with numpy, keeping the embed_and_store, retrieve_chunks and delete_collection signatures that main.py, study_agent.py and eval_harness.py call.
   - [ ] c. Drop chromadb and sentence-transformers from requirements.txt, remove the allow-missing advice from check_imports.py and the README, and add a script that reindexes documents uploaded before the switch.
 - [ ] 4. Split the 1,100-line main.py into Flask blueprints, add robust JSON parsing, upload type checks and size limits, and lock CORS to the frontend origin.
