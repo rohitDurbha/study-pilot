@@ -5,5 +5,7 @@ pypdf>=4.0
 python-dotenv>=1.0
 sqlalchemy>=2.0
 edge-tts>=7.0
+fastembed>=0.5
+numpy>=1.26
 chromadb>=0.4
 sentence-transformers>=2.2
