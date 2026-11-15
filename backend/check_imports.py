@@ -35,6 +35,7 @@ MODULES = [
     "eval_harness",
     "main",
     "smoke_llm",
+    "reindex_rag",
 ]
 
 
