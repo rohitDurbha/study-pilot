@@ -4,6 +4,7 @@ import pytest
 
 import llm
 import main
+from routes import common
 
 
 @pytest.fixture
@@ -31,10 +32,10 @@ def test_ask_llm_helpers_pass_through_to_the_provider_module(replies):
     queue, calls = replies
     queue.extend(["plain answer", "pdf answer"])
 
-    assert main.ask_llm("Hi") == "plain answer"
-    assert main.ask_llm_with_pdf(b"%PDF-1.4", "Summarize", max_tokens=100) == "pdf answer"
+    assert common.ask_llm("Hi") == "plain answer"
+    assert common.ask_llm_with_pdf(b"%PDF-1.4", "Summarize", max_tokens=100) == "pdf answer"
 
-    assert calls[0] == {"prompt": "Hi", "max_tokens": main.DEFAULT_MAX_TOKENS}
+    assert calls[0] == {"prompt": "Hi", "max_tokens": common.DEFAULT_MAX_TOKENS}
     assert calls[1] == {"prompt": "Summarize", "pdf_bytes": b"%PDF-1.4", "max_tokens": 100}
 
 

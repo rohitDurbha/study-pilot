@@ -33,6 +33,8 @@ MODULES = [
     "rag_pipeline",
     "study_agent",
     "eval_harness",
+    "routes.common",
+    "routes.generation",
     "main",
     "smoke_llm",
     "reindex_rag",
