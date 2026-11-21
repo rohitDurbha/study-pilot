@@ -16,6 +16,12 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
   - [x] b. Replace ChromaDB in rag_pipeline.py with a lightweight store that keeps chunk vectors in the existing SQLite database and ranks them by cosine similarity with numpy, keeping the embed_and_store, retrieve_chunks and delete_collection signatures that main.py, study_agent.py and eval_harness.py call.
   - [x] c. Drop chromadb and sentence-transformers from requirements.txt, remove the allow-missing advice from check_imports.py and the README, and add a script that reindexes documents uploaded before the switch.
 - [ ] 4. Split the 1,100-line main.py into Flask blueprints, add robust JSON parsing, upload type checks and size limits, and lock CORS to the frontend origin.
+  - [ ] a. Start a routes package. Move the shared model helpers and the content cache into routes/common.py, and move the upload and the flashcard, quiz, mind map and mini game routes into a generation blueprint that main.py registers, with route tests for the moved endpoints.
+  - [ ] b. Move the document, section and study session routes into their own blueprints.
+  - [ ] c. Move the agent, text to speech, static audio, eval and RAG routes into blueprints, so main.py only builds the app and registers them.
+  - [ ] d. Make JSON handling robust. Return a clear 400 when a request body is missing or not JSON, and let extract_json recover the JSON from model replies that wrap it in prose or leave a trailing comma.
+  - [ ] e. Check uploads by type and size. Accept only PDF, plain text and Markdown files whose content matches the extension, cap the request size with MAX_CONTENT_LENGTH from an environment variable, and answer oversized uploads with a JSON 413.
+  - [ ] f. Lock CORS to the frontend origin read from FRONTEND_ORIGIN (comma separated for several), defaulting to http://localhost:3000, and document it in the env example and README.
 - [ ] 5. Move focus detection fully into the browser with the MediaPipe package already in package.json, and delete focus_server.py, which returns random values.
 - [ ] 6. Upgrade Next.js 15.3.1 to a patched release because of later security advisories.
 - [ ] 7. Host for free. Frontend on Vercel, backend on Hugging Face Spaces or Render, and persistent data in Turso or Supabase free tiers because free containers lose local SQLite files.
