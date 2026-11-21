@@ -16,7 +16,7 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
   - [x] b. Replace ChromaDB in rag_pipeline.py with a lightweight store that keeps chunk vectors in the existing SQLite database and ranks them by cosine similarity with numpy, keeping the embed_and_store, retrieve_chunks and delete_collection signatures that main.py, study_agent.py and eval_harness.py call.
   - [x] c. Drop chromadb and sentence-transformers from requirements.txt, remove the allow-missing advice from check_imports.py and the README, and add a script that reindexes documents uploaded before the switch.
 - [ ] 4. Split the 1,100-line main.py into Flask blueprints, add robust JSON parsing, upload type checks and size limits, and lock CORS to the frontend origin.
-  - [ ] a. Start a routes package. Move the shared model helpers and the content cache into routes/common.py, and move the upload and the flashcard, quiz, mind map and mini game routes into a generation blueprint that main.py registers, with route tests for the moved endpoints.
+  - [x] a. Start a routes package. Move the shared model helpers and the content cache into routes/common.py, and move the upload and the flashcard, quiz, mind map and mini game routes into a generation blueprint that main.py registers, with route tests for the moved endpoints.
   - [ ] b. Move the document, section and study session routes into their own blueprints.
   - [ ] c. Move the agent, text to speech, static audio, eval and RAG routes into blueprints, so main.py only builds the app and registers them.
   - [ ] d. Make JSON handling robust. Return a clear 400 when a request body is missing or not JSON, and let extract_json recover the JSON from model replies that wrap it in prose or leave a trailing comma.

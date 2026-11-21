@@ -122,7 +122,9 @@ app/
     session/              end of session report
 components/ui/            shared shadcn/ui components
 backend/
-  main.py                 every Flask route
+  main.py                 builds the Flask app and the routes not yet moved
+  routes/common.py        model helpers and the generated content cache
+  routes/generation.py    upload, flashcard, quiz, mind map and mini game routes
   llm.py                  Groq and Gemini provider module with fallback
   smoke_llm.py            live check that each provider answers
   check_imports.py        imports every module to catch missing packages
