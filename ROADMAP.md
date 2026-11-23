@@ -1,6 +1,27 @@
 # StudyPilot Roadmap
 
-StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studybuddy.ai) that aims to run entirely on free tiers. Work moves one step at a time, and each step is ticked when it lands on main.
+StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studybuddy.ai) that aims to run entirely on free tiers. Each session finishes a whole item when it can, and items stay split into steps so progress is easy to follow. The Live link section comes before everything else, because bugs are easier to find and fix while a link is up.
+
+
+## Live link
+
+Live link: not deployed yet. The backend goes to a Hugging Face Docker Space and the frontend goes to Vercel, both deployed from GitHub Actions with repository secrets, so nothing is deployed by hand.
+
+- [ ] Put StudyPilot on a free live link.
+  - [ ] a. Add a workflow that runs `backend/smoke_llm.py` with the `GROQ_API_KEY` and `GEMINI_API_KEY` repository secrets, so a key or model name that stops working shows up as a failed run.
+  - [ ] b. Upgrade Next.js 15.3.1 to a patched release before the site is public. This was item 6.
+  - [ ] c. Lock CORS to `FRONTEND_ORIGIN` and add the upload type and size checks, which were steps e and f of item 4, because a public backend needs both.
+  - [ ] d. Add a backend Dockerfile for a Hugging Face Docker Space that downloads the fastembed model at build time and serves the app with gunicorn on port 7860. Add a workflow that pushes it with `HF_TOKEN` and copies the provider keys into the Space secrets.
+  - [ ] e. Deploy the frontend to Vercel from a workflow with `VERCEL_TOKEN`, pointed at the Space.
+  - [ ] f. Add a check after each deploy that loads the site and calls the backend, then put both live links at the top of the README and of this section. The first live version keeps SQLite inside the container, so uploads reset when the Space restarts, and durable storage in Turso stays in item 7.
+
+## Bugs found on the live site
+
+Every session opens the live link first, adds anything broken here, and fixes these before the numbered items.
+
+- None logged yet, because the site is not live.
+
+## Items
 
 - [x] 1. Import the code from PuneethRegonda/studybuddy.ai without the Word reports, plans, contribution notes, generator scripts and tsbuildinfo. Keep the MIT LICENSE and credit the original team in the README.
   - [x] a. Import the application source (frontend and backend) together with the original MIT LICENSE, leaving out reports, plans, contribution notes, generator scripts, build output and tsbuildinfo.
@@ -20,15 +41,17 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
   - [ ] b. Move the document, section and study session routes into their own blueprints.
   - [ ] c. Move the agent, text to speech, static audio, eval and RAG routes into blueprints, so main.py only builds the app and registers them.
   - [ ] d. Make JSON handling robust. Return a clear 400 when a request body is missing or not JSON, and let extract_json recover the JSON from model replies that wrap it in prose or leave a trailing comma.
-  - [ ] e. Check uploads by type and size. Accept only PDF, plain text and Markdown files whose content matches the extension, cap the request size with MAX_CONTENT_LENGTH from an environment variable, and answer oversized uploads with a JSON 413.
-  - [ ] f. Lock CORS to the frontend origin read from FRONTEND_ORIGIN (comma separated for several), defaulting to http://localhost:3000, and document it in the env example and README.
+  - [ ] e. Moved into step c of the Live link section. Check uploads by type and size. Accept only PDF, plain text and Markdown files whose content matches the extension, cap the request size with MAX_CONTENT_LENGTH from an environment variable, and answer oversized uploads with a JSON 413.
+  - [ ] f. Moved into step c of the Live link section. Lock CORS to the frontend origin read from FRONTEND_ORIGIN (comma separated for several), defaulting to http://localhost:3000, and document it in the env example and README.
 - [ ] 5. Move focus detection fully into the browser with the MediaPipe package already in package.json, and delete focus_server.py, which returns random values.
-- [ ] 6. Upgrade Next.js 15.3.1 to a patched release because of later security advisories.
+- [ ] 6. Moved into step b of the Live link section. Upgrade Next.js 15.3.1 to a patched release because of later security advisories.
 - [ ] 7. Host for free. Frontend on Vercel, backend on Hugging Face Spaces or Render, and persistent data in Turso or Supabase free tiers because free containers lose local SQLite files.
 - [ ] 8. Tests, CI and a README with setup steps.
 
 ## Needs Rohit
 
 - Create free Groq and Gemini API keys and add them as GROQ_API_KEY and GEMINI_API_KEY in backend/.env. Every backend module now goes through backend/llm.py, which tries Groq first and falls back to Gemini, so no feature that generates content will work until at least one key is set. Afterwards run `python3 smoke_llm.py` inside backend/ to confirm that both keys and the default model names work.
-- Vercel and Hugging Face accounts for item 7.
+- Done. `GROQ_API_KEY` and `GEMINI_API_KEY` are saved as repository secrets.
+- Add `VERCEL_TOKEN` and `HF_TOKEN` as repository secrets in this repository. The same tokens already saved in safe-stride work here too.
+- A free Turso account for durable storage in item 7, which can wait until the site is live.
 - Optional. Host the original demo clip somewhere public and set NEXT_PUBLIC_DEMO_VIDEO_URL if you want the video component to show it.
