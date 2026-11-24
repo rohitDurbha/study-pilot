@@ -1,0 +1,46 @@
+name: LLM smoke test
+
+# Sends one short prompt to Groq and one to Gemini with the repository secrets,
+# so an expired key or a retired model name shows up as a failed run.
+#
+# Each run makes one request per provider with at most 256 output tokens.
+# Groq free tier for openai/gpt-oss-120b is 30 requests and 8K tokens per
+# minute, 1K requests and 200K tokens per day, so a daily run plus pushes
+# that touch llm.py stay far below it. Gemini free tier limits are shown in
+# Google AI Studio, and one request a run is well inside any of them.
+
+on:
+  schedule:
+    - cron: "17 15 * * *"
+  push:
+    branches: [main]
+    paths:
+      - backend/llm.py
+      - backend/smoke_llm.py
+      - .github/workflows/smoke-llm.yml
+  workflow_dispatch:
+
+concurrency:
+  group: smoke-llm
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements.txt
+      - name: Check each provider
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python smoke_llm.py

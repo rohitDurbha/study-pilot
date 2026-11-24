@@ -8,7 +8,7 @@ StudyPilot is a port of [StudyBuddy.ai](https://github.com/PuneethRegonda/studyb
 Live link: not deployed yet. The backend goes to a Hugging Face Docker Space and the frontend goes to Vercel, both deployed from GitHub Actions with repository secrets, so nothing is deployed by hand.
 
 - [ ] Put StudyPilot on a free live link.
-  - [ ] a. Add a workflow that runs `backend/smoke_llm.py` with the `GROQ_API_KEY` and `GEMINI_API_KEY` repository secrets, so a key or model name that stops working shows up as a failed run.
+  - [x] a. Add a workflow that runs `backend/smoke_llm.py` with the `GROQ_API_KEY` and `GEMINI_API_KEY` repository secrets, so a key or model name that stops working shows up as a failed run.
   - [x] b. Upgrade Next.js 15.3.1 to a patched release before the site is public. This was item 6. Now on 15.5.29, the maintained 15.x line, which npm audit no longer flags.
   - [x] c. Lock CORS to `FRONTEND_ORIGIN` and add the upload type and size checks, which were steps e and f of item 4, because a public backend needs both.
   - [ ] d. Add a backend Dockerfile for a Hugging Face Docker Space that downloads the fastembed model at build time and serves the app with gunicorn on port 7860. Add a workflow that pushes it with `HF_TOKEN` and copies the provider keys into the Space secrets.
