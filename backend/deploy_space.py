@@ -6,6 +6,7 @@ The workflow in .github/workflows/deploy-backend.yml runs
     python deploy_space.py wait       # poll until /health answers or the build fails
     python deploy_space.py check      # call real API routes on the live backend
     python deploy_space.py url        # print the Space URL for the frontend build
+    python deploy_space.py set-origin # allow SITE_URL through CORS on the Space
 
 It reads HF_TOKEN and the provider keys from the environment, so no key is
 ever written to the repository. HF_SPACE_NAME picks the Space, either as
@@ -162,6 +163,41 @@ def print_url(environ=None, api=None) -> int:
     return 0
 
 
+LOCAL_ORIGIN = "http://localhost:3000"
+
+
+def set_origin(environ=None, api=None) -> int:
+    """Point FRONTEND_ORIGIN on the Space at the deployed frontend.
+
+    The Vercel deploy calls this with SITE_URL, so the backend accepts the
+    production site plus the local dev server. Changing a variable restarts
+    the Space, so nothing is written when the value is already right.
+    """
+    environ = os.environ if environ is None else environ
+    site = environ.get("SITE_URL", "").strip().rstrip("/")
+    if not site or not environ.get("HF_TOKEN", "").strip():
+        print("set-origin needs SITE_URL and the HF_TOKEN repository secret.")
+        return 1
+    if api is None:
+        from huggingface_hub import HfApi
+
+        api = HfApi(token=environ["HF_TOKEN"])
+    repo_id = resolve_repo_id(api, environ)
+    wanted = f"{site},{LOCAL_ORIGIN}"
+
+    current = api.get_space_variables(repo_id).get("FRONTEND_ORIGIN")
+    current_value = getattr(current, "value", current)
+    write_output("repo_id", repo_id, environ)
+    if current_value == wanted:
+        print(f"FRONTEND_ORIGIN already allows {site}")
+        write_output("changed", "false", environ)
+        return 0
+    api.add_space_variable(repo_id, "FRONTEND_ORIGIN", wanted)
+    print(f"FRONTEND_ORIGIN set to {wanted}, the Space restarts to pick it up")
+    write_output("changed", "true", environ)
+    return 0
+
+
 def http_request(url, method="GET", headers=None, timeout=60):
     """Return (status, headers, parsed JSON or None) without raising on HTTP errors."""
     req = urllib.request.Request(url, method=method, headers=headers or {})
@@ -248,7 +284,7 @@ def check(environ=None, request=http_request) -> int:
 
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
-    commands = {"deploy": deploy, "wait": wait, "check": check, "url": print_url}
+    commands = {"deploy": deploy, "wait": wait, "check": check, "url": print_url, "set-origin": set_origin}
     if command not in commands:
         print(__doc__)
         sys.exit(2)

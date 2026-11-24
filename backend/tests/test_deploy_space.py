@@ -107,3 +107,43 @@ def test_check_fails_without_providers_or_with_the_wrong_cors_origin(capsys):
     assert deploy_space.check(env, request=request) == 1
     out = capsys.readouterr().out
     assert "provider" in out and "CORS" in out
+
+
+class FakeVariable:
+    def __init__(self, value):
+        self.value = value
+
+
+class OriginApi(FakeApi):
+    def __init__(self, current=None):
+        super().__init__()
+        self.current = current
+
+    def get_space_variables(self, repo_id):
+        return {} if self.current is None else {"FRONTEND_ORIGIN": FakeVariable(self.current)}
+
+
+def test_set_origin_writes_the_site_and_the_local_dev_server(tmp_path):
+    api = OriginApi()
+    out_file = tmp_path / "out.txt"
+    env = {"HF_TOKEN": "hf_x", "SITE_URL": "https://study-pilot.vercel.app/", "GITHUB_OUTPUT": str(out_file)}
+
+    assert deploy_space.set_origin(env, api=api) == 0
+
+    assert ("variable", "FRONTEND_ORIGIN", "https://study-pilot.vercel.app,http://localhost:3000") in api.calls
+    assert "changed=true" in out_file.read_text()
+
+
+def test_set_origin_leaves_a_correct_value_alone_so_the_space_does_not_restart(tmp_path):
+    api = OriginApi(current="https://study-pilot.vercel.app,http://localhost:3000")
+    out_file = tmp_path / "out.txt"
+    env = {"HF_TOKEN": "hf_x", "SITE_URL": "https://study-pilot.vercel.app", "GITHUB_OUTPUT": str(out_file)}
+
+    assert deploy_space.set_origin(env, api=api) == 0
+
+    assert not any(c[0] == "variable" for c in api.calls)
+    assert "changed=false" in out_file.read_text()
+
+
+def test_set_origin_needs_a_site_url():
+    assert deploy_space.set_origin({"HF_TOKEN": "hf_x"}, api=OriginApi()) == 1

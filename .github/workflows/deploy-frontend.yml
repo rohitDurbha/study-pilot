@@ -1,0 +1,118 @@
+name: Deploy frontend
+
+# Builds the Next.js app against the Hugging Face backend, publishes it to
+# Vercel on every push to main that touches the frontend, lets the new site
+# through CORS on the Space and checks that both answer.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "backend/**"
+      - "**.md"
+      - ".github/workflows/deploy-backend.yml"
+      - ".github/workflows/smoke-llm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Shared with the backend deploy, so the CORS update never lands while the
+# Space is halfway through a build.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_SPACE_NAME: ${{ vars.HF_SPACE_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for the deploy tokens
+        run: |
+          missing=""
+          [ -z "$VERCEL_TOKEN" ] && missing="$missing VERCEL_TOKEN"
+          [ -z "$HF_TOKEN" ] && missing="$missing HF_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::These repository secrets are missing:$missing"
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet huggingface_hub
+      - name: Work out the backend URL
+        id: backend
+        working-directory: backend
+        run: python deploy_space.py url
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Publish to Vercel
+        id: vercel
+        env:
+          NEXT_PUBLIC_BACKEND_URL: ${{ steps.backend.outputs.url }}
+        run: |
+          echo "Building against $NEXT_PUBLIC_BACKEND_URL"
+          for attempt in 1 2 3; do
+            if npx --yes vercel@63.1.0 deploy --prod --yes \
+                --build-env NEXT_PUBLIC_BACKEND_URL="$NEXT_PUBLIC_BACKEND_URL" > deploy-url.txt; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+            sleep 15
+          done
+          deployment=$(tail -n 1 deploy-url.txt)
+          echo "Deployment $deployment"
+          # The production alias is the short project URL that stays the same
+          # across deploys. Fall back to the deployment URL if none is listed.
+          npx --yes vercel@63.1.0 inspect "$deployment" > inspect.txt 2>&1 || true
+          alias=$(grep -oE 'https://[a-z0-9.-]+\.vercel\.app' inspect.txt \
+            | grep -vxF "$deployment" | awk '{ print length, $0 }' | sort -n | head -n 1 | cut -d' ' -f2)
+          url=${alias:-$deployment}
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Frontend live at $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check that the page loads
+        env:
+          SITE_URL: ${{ steps.vercel.outputs.url }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error --max-time 20 "$SITE_URL/" -o index.html \
+                && grep -q 'StudyBuddy' index.html \
+                && curl --fail --silent --max-time 20 -o /dev/null "$SITE_URL/dashboard"; then
+              echo "Frontend answered at $SITE_URL"
+              exit 0
+            fi
+            if [ "$attempt" = 6 ]; then
+              echo "::error::$SITE_URL did not serve the app"
+              exit 1
+            fi
+            sleep 10
+          done
+      - name: Let the site through CORS on the Space
+        id: origin
+        working-directory: backend
+        env:
+          SITE_URL: ${{ steps.vercel.outputs.url }}
+        run: python deploy_space.py set-origin
+      - name: Wait for the Space to restart
+        if: steps.origin.outputs.changed == 'true'
+        working-directory: backend
+        env:
+          HF_SPACE_REPO_ID: ${{ steps.origin.outputs.repo_id }}
+        run: sleep 20 && python deploy_space.py wait
+      - name: Call the backend as the site would
+        working-directory: backend
+        env:
+          HF_SPACE_REPO_ID: ${{ steps.origin.outputs.repo_id }}
+          FRONTEND_ORIGIN: ${{ steps.vercel.outputs.url }}
+        run: python deploy_space.py check

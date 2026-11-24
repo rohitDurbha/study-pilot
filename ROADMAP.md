@@ -11,8 +11,8 @@ Live link: not deployed yet. The backend goes to a Hugging Face Docker Space and
   - [x] a. Add a workflow that runs `backend/smoke_llm.py` with the `GROQ_API_KEY` and `GEMINI_API_KEY` repository secrets, so a key or model name that stops working shows up as a failed run.
   - [x] b. Upgrade Next.js 15.3.1 to a patched release before the site is public. This was item 6. Now on 15.5.29, the maintained 15.x line, which npm audit no longer flags.
   - [x] c. Lock CORS to `FRONTEND_ORIGIN` and add the upload type and size checks, which were steps e and f of item 4, because a public backend needs both.
-  - [ ] d. Add a backend Dockerfile for a Hugging Face Docker Space that downloads the fastembed model at build time and serves the app with gunicorn on port 7860. Add a workflow that pushes it with `HF_TOKEN` and copies the provider keys into the Space secrets.
-  - [ ] e. Deploy the frontend to Vercel from a workflow with `VERCEL_TOKEN`, pointed at the Space.
+  - [ ] d. Add a backend Dockerfile for a Hugging Face Docker Space that downloads the fastembed model at build time and serves the app with gunicorn on port 7860. Add a workflow that pushes it with `HF_TOKEN` and copies the provider keys into the Space secrets. The Dockerfile, `deploy_space.py` and the Deploy backend workflow are in place and tested, and the first run stopped only because the `HF_TOKEN` secret is missing. Tick this once a run goes green.
+  - [ ] e. Deploy the frontend to Vercel from a workflow with `VERCEL_TOKEN`, pointed at the Space. The Deploy frontend workflow builds with `NEXT_PUBLIC_BACKEND_URL` set to the Space, checks the pages, writes the site into `FRONTEND_ORIGIN` on the Space and repeats the browser's CORS preflight. It waits on the `VERCEL_TOKEN` and `HF_TOKEN` secrets. Tick this once a run goes green.
   - [ ] f. Add a check after each deploy that loads the site and calls the backend, then put both live links at the top of the README and of this section. The first live version keeps SQLite inside the container, so uploads reset when the Space restarts, and durable storage in Turso stays in item 7.
 
 ## Bugs found on the live site
@@ -52,6 +52,7 @@ Every session opens the live link first, adds anything broken here, and fixes th
 
 - Create free Groq and Gemini API keys and add them as GROQ_API_KEY and GEMINI_API_KEY in backend/.env. Every backend module now goes through backend/llm.py, which tries Groq first and falls back to Gemini, so no feature that generates content will work until at least one key is set. Afterwards run `python3 smoke_llm.py` inside backend/ to confirm that both keys and the default model names work.
 - Done. `GROQ_API_KEY` and `GEMINI_API_KEY` are saved as repository secrets.
-- Add `VERCEL_TOKEN` and `HF_TOKEN` as repository secrets in this repository. The same tokens already saved in safe-stride work here too.
+- Add `HF_TOKEN` (a Hugging Face token with write access) and `VERCEL_TOKEN` as repository secrets in this repository. The same tokens already saved in safe-stride work here too. The Deploy backend run on 2026-11-24 stopped with "these repository secrets are missing: HF_TOKEN", and both deploy workflows are ready to go as soon as the secrets exist. Afterwards rerun Deploy backend first and then Deploy frontend from the Actions tab, or just push.
+- Check the Gemini free tier limits for `gemini-3.5-flash-lite` in Google AI Studio under Rate limits, because Google only shows them there. The code assumes conservative limits until you confirm.
 - A free Turso account for durable storage in item 7, which can wait until the site is live.
 - Optional. Host the original demo clip somewhere public and set NEXT_PUBLIC_DEMO_VIDEO_URL if you want the video component to show it.

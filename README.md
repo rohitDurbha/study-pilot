@@ -81,6 +81,10 @@ Uploads must be a PDF, a plain text file or a Markdown file, and the content has
 
 The backend runs on a free Hugging Face Docker Space. Every push to main that changes `backend/` runs the Deploy backend workflow, which tests the code, uploads `backend/` with its `Dockerfile` to the Space through `deploy_space.py`, copies `GROQ_API_KEY` and `GEMINI_API_KEY` into the Space secrets, waits for `/health` to answer and then calls `/health`, `/api/documents` and a CORS preflight on the live server. That check calls no model, so a deploy spends none of the free tier quota. The image downloads the embedding model while it builds and serves the app with gunicorn on port 7860. The workflow needs the `HF_TOKEN` repository secret (a Hugging Face token with write access) and at least one provider key. The Space is called `study-pilot` under the token's account unless the `HF_SPACE_NAME` repository variable says otherwise. SQLite lives inside the container for now, so uploaded documents disappear whenever the Space restarts.
 
+### Deploying the frontend
+
+The frontend runs on Vercel. Every push to main outside `backend/` runs the Deploy frontend workflow, which works out the Space address, builds the site with `NEXT_PUBLIC_BACKEND_URL` set to it and publishes it with the `VERCEL_TOKEN` repository secret. It then checks that the home and dashboard pages load, writes the site address into `FRONTEND_ORIGIN` on the Space so the backend accepts it, and makes the same CORS preflight and API calls a browser on the site would. Locally `NEXT_PUBLIC_BACKEND_URL` can stay empty, and the app talks to http://127.0.0.1:5005.
+
 ### A quick tour
 
 1. Open http://localhost:3000 and click **+ Add Source** to upload a PDF, text or markdown file.
