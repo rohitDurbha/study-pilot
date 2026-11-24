@@ -10,8 +10,11 @@ first in normal use.
 
 Each provider prints one line with its model, how long the reply took, the
 token counts and the start of the reply. A provider without an API key is
-listed as skipped. The exit code is 0 when every provider with a key answered,
-1 when at least one of them failed and 2 when no key is set at all.
+listed as skipped. A provider that keeps answering HTTP 503 (the model is
+overloaded for a while) is retried twice and then listed as busy, which does
+not fail the run because the key and the model name were accepted. The exit
+code is 0 when every provider with a key answered or was busy, 1 when at least
+one of them failed and 2 when no key is set at all.
 
 Real requests are sent, so each run uses a few hundred tokens of your free
 quota per provider.
@@ -35,12 +38,16 @@ JSON_PROMPT = 'Reply with a JSON object of the form {"reply": "pong"} and nothin
 # Reasoning models on Groq spend part of the budget thinking, so leave room.
 MAX_TOKENS = 256
 
+# How often and how long to wait before retrying a provider that answered 503.
+BUSY_RETRIES = 2
+BUSY_WAIT_SECONDS = 15.0
+
 
 @dataclasses.dataclass
 class Result:
     provider: str
     model: str
-    status: str  # "ok", "failed" or "skipped"
+    status: str  # "ok", "busy", "failed" or "skipped"
     detail: str = ""
     seconds: float = 0.0
     input_tokens: int = 0
@@ -58,7 +65,17 @@ def _preview(text: str, limit: int = 60) -> str:
     return flat if len(flat) <= limit else flat[: limit - 3] + "..."
 
 
-def check_provider(provider, config, *, prompt, json_mode=False, session=None, clock=time.monotonic):
+def check_provider(
+    provider,
+    config,
+    *,
+    prompt,
+    json_mode=False,
+    session=None,
+    clock=time.monotonic,
+    sleep=time.sleep,
+    busy_retries=BUSY_RETRIES,
+):
     """Send prompt to one provider only and describe what happened."""
     model = config.model(provider)
     if not config.api_key(provider):
@@ -67,17 +84,24 @@ def check_provider(provider, config, *, prompt, json_mode=False, session=None, c
 
     single = dataclasses.replace(config, providers=(provider,))
     started = clock()
-    try:
-        reply = llm.generate(
-            prompt,
-            max_tokens=MAX_TOKENS,
-            json_mode=json_mode,
-            config=single,
-            session=session,
-        )
-    except llm.LLMError as exc:
-        reason = str(exc).replace("Every provider failed. ", "")
-        return Result(provider, model, "failed", reason, seconds=clock() - started)
+    for attempt in range(busy_retries + 1):
+        try:
+            reply = llm.generate(
+                prompt,
+                max_tokens=MAX_TOKENS,
+                json_mode=json_mode,
+                config=single,
+                session=session,
+            )
+            break
+        except llm.LLMError as exc:
+            reason = str(exc).replace("Every provider failed. ", "")
+            if "HTTP 503" not in reason:
+                return Result(provider, model, "failed", reason, seconds=clock() - started)
+            if attempt == busy_retries:
+                detail = f"HTTP 503 after {busy_retries + 1} tries, the model is overloaded for now"
+                return Result(provider, model, "busy", detail, seconds=clock() - started)
+            sleep(BUSY_WAIT_SECONDS * (attempt + 1))
     elapsed = clock() - started
 
     if json_mode:
@@ -99,10 +123,10 @@ def check_provider(provider, config, *, prompt, json_mode=False, session=None, c
     )
 
 
-def run(providers, config, *, prompt, json_mode=False, session=None, out=sys.stdout):
+def run(providers, config, *, prompt, json_mode=False, session=None, out=sys.stdout, sleep=time.sleep):
     """Check each provider in turn, print one line per provider and return the exit code."""
     results = [
-        check_provider(p, config, prompt=prompt, json_mode=json_mode, session=session)
+        check_provider(p, config, prompt=prompt, json_mode=json_mode, session=session, sleep=sleep)
         for p in providers
     ]
     for result in results:

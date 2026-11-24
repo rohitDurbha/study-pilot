@@ -116,3 +116,38 @@ def test_main_rejects_an_unknown_provider_order(monkeypatch, capsys):
 
     assert smoke_llm.main([]) == 2
     assert "Unknown provider" in capsys.readouterr().err
+
+
+def busy():
+    return FakeResponse(status=503, text='{"error": {"code": 503, "status": "UNAVAILABLE"}}')
+
+
+def test_a_busy_provider_is_retried_and_then_succeeds():
+    waits = []
+    session = FakeSession(groq=[groq_ok("pong")], gemini=[busy(), gemini_ok("pong")])
+    code, lines = run(BOTH, session, sleep=waits.append)
+
+    assert code == 0
+    assert waits == [smoke_llm.BUSY_WAIT_SECONDS]
+    assert lines[1].startswith("ok") and "gemini" in lines[1]
+
+
+def test_a_provider_that_stays_busy_is_reported_without_failing_the_run():
+    waits = []
+    session = FakeSession(groq=[groq_ok("pong")], gemini=[busy(), busy(), busy()])
+    code, lines = run(BOTH, session, sleep=waits.append)
+
+    assert code == 0
+    assert len(waits) == smoke_llm.BUSY_RETRIES
+    assert lines[1].startswith("busy") and "overloaded" in lines[1]
+
+
+def test_other_errors_are_not_retried():
+    waits = []
+    error = FakeResponse(status=429, text='{"error": "rate limited"}')
+    session = FakeSession(groq=[error], gemini=[gemini_ok("pong")])
+    code, lines = run(BOTH, session, sleep=waits.append)
+
+    assert code == 1
+    assert waits == []
+    assert lines[0].startswith("failed") and "HTTP 429" in lines[0]

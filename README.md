@@ -55,7 +55,7 @@ Every prompt the backend sends goes through `backend/llm.py`, which talks to Gro
 | `LLM_TIMEOUT_SECONDS` | `60` | Timeout for each request |
 | `LLM_PDF_TEXT_LIMIT` | `60000` | Most characters of PDF text sent to Groq |
 
-After setting a key, run `python3 smoke_llm.py` inside `backend/` to send one short prompt to each provider separately. It prints the model, the response time and the token counts for each one, marks a provider without a key as skipped, and exits with a nonzero code if any provider that has a key fails. Use `--provider gemini` to check a single provider and `--json-mode` to confirm that JSON replies parse. Each run sends real requests, so it uses a small slice of your free quota.
+After setting a key, run `python3 smoke_llm.py` inside `backend/` to send one short prompt to each provider separately. It prints the model, the response time and the token counts for each one, marks a provider without a key as skipped, and exits with a nonzero code if any provider that has a key fails. Use `--provider gemini` to check a single provider and `--json-mode` to confirm that JSON replies parse. A provider that answers HTTP 503 because the model is overloaded is retried twice and then listed as busy, which does not fail the run, since the key and model name were accepted. The LLM smoke test workflow runs the script every day with the repository secrets and on every push that changes `llm.py`. Each run sends real requests, so it uses a small slice of your free quota.
 
 ### Starting the API
 
