@@ -12,6 +12,7 @@ from flask import Blueprint, jsonify, request
 import database
 from database import Document, DocumentSection, SectionProgress
 from routes.common import ask_llm, extract_json, get_cached_content, save_content_cache
+from web_config import UploadRejected, classify_upload
 
 generation_bp = Blueprint("generation", __name__)
 
@@ -32,7 +33,10 @@ def upload_pdf():
             return jsonify({"error": "Empty file"}), 400
 
         filename = file.filename or "untitled"
-        is_pdf = filename.lower().endswith('.pdf') and file_bytes[:4] == b'%PDF'
+        try:
+            is_pdf = classify_upload(filename, file_bytes) == "pdf"
+        except UploadRejected as rejected:
+            return jsonify({"error": str(rejected)}), 415
 
         # Process document into structured sections
         from document_processor import process_document, process_text_document
@@ -41,10 +45,7 @@ def upload_pdf():
             result = process_document(file_bytes, filename)
         else:
             # Text or Markdown file — read as text
-            try:
-                text_content = file_bytes.decode('utf-8')
-            except UnicodeDecodeError:
-                text_content = file_bytes.decode('latin-1')
+            text_content = file_bytes.decode('utf-8')
             result = process_text_document(text_content, filename)
 
         doc_id = f"doc-{uuid.uuid4()}"

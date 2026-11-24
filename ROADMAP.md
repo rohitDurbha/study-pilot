@@ -10,7 +10,7 @@ Live link: not deployed yet. The backend goes to a Hugging Face Docker Space and
 - [ ] Put StudyPilot on a free live link.
   - [ ] a. Add a workflow that runs `backend/smoke_llm.py` with the `GROQ_API_KEY` and `GEMINI_API_KEY` repository secrets, so a key or model name that stops working shows up as a failed run.
   - [x] b. Upgrade Next.js 15.3.1 to a patched release before the site is public. This was item 6. Now on 15.5.29, the maintained 15.x line, which npm audit no longer flags.
-  - [ ] c. Lock CORS to `FRONTEND_ORIGIN` and add the upload type and size checks, which were steps e and f of item 4, because a public backend needs both.
+  - [x] c. Lock CORS to `FRONTEND_ORIGIN` and add the upload type and size checks, which were steps e and f of item 4, because a public backend needs both.
   - [ ] d. Add a backend Dockerfile for a Hugging Face Docker Space that downloads the fastembed model at build time and serves the app with gunicorn on port 7860. Add a workflow that pushes it with `HF_TOKEN` and copies the provider keys into the Space secrets.
   - [ ] e. Deploy the frontend to Vercel from a workflow with `VERCEL_TOKEN`, pointed at the Space.
   - [ ] f. Add a check after each deploy that loads the site and calls the backend, then put both live links at the top of the README and of this section. The first live version keeps SQLite inside the container, so uploads reset when the Space restarts, and durable storage in Turso stays in item 7.
@@ -41,8 +41,8 @@ Every session opens the live link first, adds anything broken here, and fixes th
   - [ ] b. Move the document, section and study session routes into their own blueprints.
   - [ ] c. Move the agent, text to speech, static audio, eval and RAG routes into blueprints, so main.py only builds the app and registers them.
   - [ ] d. Make JSON handling robust. Return a clear 400 when a request body is missing or not JSON, and let extract_json recover the JSON from model replies that wrap it in prose or leave a trailing comma.
-  - [ ] e. Moved into step c of the Live link section. Check uploads by type and size. Accept only PDF, plain text and Markdown files whose content matches the extension, cap the request size with MAX_CONTENT_LENGTH from an environment variable, and answer oversized uploads with a JSON 413.
-  - [ ] f. Moved into step c of the Live link section. Lock CORS to the frontend origin read from FRONTEND_ORIGIN (comma separated for several), defaulting to http://localhost:3000, and document it in the env example and README.
+  - [x] e. Done in step c of the Live link section. Check uploads by type and size. Accept only PDF, plain text and Markdown files whose content matches the extension, cap the request size with MAX_CONTENT_LENGTH from an environment variable, and answer oversized uploads with a JSON 413.
+  - [x] f. Done in step c of the Live link section. Lock CORS to the frontend origin read from FRONTEND_ORIGIN (comma separated for several), defaulting to http://localhost:3000, and document it in the env example and README.
 - [ ] 5. Move focus detection fully into the browser with the MediaPipe package already in package.json, and delete focus_server.py, which returns random values.
 - [x] 6. Done in step b of the Live link section. Upgrade Next.js 15.3.1 to a patched release because of later security advisories.
 - [ ] 7. Host for free. Frontend on Vercel, backend on Hugging Face Spaces or Render, and persistent data in Turso or Supabase free tiers because free containers lose local SQLite files.

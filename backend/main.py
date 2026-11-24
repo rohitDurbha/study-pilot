@@ -5,15 +5,24 @@ import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from routes.generation import generation_bp
+from web_config import allowed_origins, max_upload_bytes
 
 # Setup
 logging.basicConfig(level=logging.DEBUG)
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes()
+CORS(app, resources={r"/*": {"origins": allowed_origins()}})
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def request_too_large(_error):
+    limit_mb = app.config["MAX_CONTENT_LENGTH"] / (1024 * 1024)
+    return jsonify({"error": f"The upload is larger than the {limit_mb:g} MB limit."}), 413
 
 app.register_blueprint(generation_bp)
 

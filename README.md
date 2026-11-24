@@ -69,6 +69,12 @@ python3 reindex_rag.py              # embed them
 python3 reindex_rag.py --all        # rebuild every document, for example after changing EMBEDDING_MODEL
 ```
 
+### Origins and upload limits
+
+The API only answers browsers on the origins listed in `FRONTEND_ORIGIN`, which defaults to `http://localhost:3000`. Open the dev server at that address rather than 127.0.0.1, or list both, separated by commas. The deployed backend sets it to the Vercel address of the frontend.
+
+Uploads must be a PDF, a plain text file or a Markdown file, and the content has to match the extension, so a file renamed to `.pdf` or a binary saved as `.txt` is refused with a 415 before anything is sent to a model. Requests larger than `MAX_UPLOAD_MB` (10 by default) get a JSON 413. Both settings live in `backend/web_config.py` and are read from `backend/.env`.
+
 ### A quick tour
 
 1. Open http://localhost:3000 and click **+ Add Source** to upload a PDF, text or markdown file.
@@ -125,6 +131,7 @@ backend/
   main.py                 builds the Flask app and the routes not yet moved
   routes/common.py        model helpers and the generated content cache
   routes/generation.py    upload, flashcard, quiz, mind map and mini game routes
+  web_config.py           CORS origins, upload size limit and upload type checks
   llm.py                  Groq and Gemini provider module with fallback
   smoke_llm.py            live check that each provider answers
   check_imports.py        imports every module to catch missing packages

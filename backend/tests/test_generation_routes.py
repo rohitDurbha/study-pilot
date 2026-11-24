@@ -192,3 +192,44 @@ def test_markdown_upload_saves_sections_and_progress(client, replies, db_session
     assert statuses == {"not_started"}
     assert db.query(database.ChunkEmbedding).filter_by(document_id=body["id"]).count() >= 2
     db.close()
+
+
+@pytest.mark.parametrize(
+    "name, data",
+    [("slides.pptx", b"PK\x03\x04rest"), ("fake.pdf", b"not a pdf at all"), ("bin.txt", b"a\x00b")],
+)
+def test_upload_of_a_wrong_or_disguised_type_is_rejected(client, replies, name, data):
+    resp = client.post(
+        "/upload", data={"file": (io.BytesIO(data), name)}, content_type="multipart/form-data"
+    )
+
+    assert resp.status_code == 415
+    assert "error" in resp.get_json()
+    assert replies[1] == []  # nothing was sent to a model
+
+
+def test_upload_over_the_size_limit_gets_a_json_413(client, monkeypatch):
+    monkeypatch.setitem(main.app.config, "MAX_CONTENT_LENGTH", 1024)
+
+    resp = client.post(
+        "/upload",
+        data={"file": (io.BytesIO(b"x" * 4096), "big.md")},
+        content_type="multipart/form-data",
+    )
+
+    assert resp.status_code == 413
+    assert "MB limit" in resp.get_json()["error"]
+
+
+def test_cors_allows_only_the_configured_frontend(client):
+    allowed = client.options(
+        "/generate-quiz",
+        headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "POST"},
+    )
+    refused = client.options(
+        "/generate-quiz",
+        headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},
+    )
+
+    assert allowed.headers.get("Access-Control-Allow-Origin") == "http://localhost:3000"
+    assert "Access-Control-Allow-Origin" not in refused.headers
