@@ -19,6 +19,18 @@ app.config["MAX_CONTENT_LENGTH"] = max_upload_bytes()
 CORS(app, resources={r"/*": {"origins": allowed_origins()}})
 
 
+@app.route("/health", methods=["GET"])
+def health():
+    """Report that the server is up and which model providers have a key, without calling them."""
+    import llm
+
+    try:
+        providers = list(llm.load_config().active_providers)
+    except llm.LLMError:
+        providers = []
+    return jsonify({"status": "ok", "llm_providers": providers})
+
+
 @app.errorhandler(RequestEntityTooLarge)
 def request_too_large(_error):
     limit_mb = app.config["MAX_CONTENT_LENGTH"] / (1024 * 1024)

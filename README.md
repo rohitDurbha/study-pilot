@@ -75,6 +75,10 @@ The API only answers browsers on the origins listed in `FRONTEND_ORIGIN`, which 
 
 Uploads must be a PDF, a plain text file or a Markdown file, and the content has to match the extension, so a file renamed to `.pdf` or a binary saved as `.txt` is refused with a 415 before anything is sent to a model. Requests larger than `MAX_UPLOAD_MB` (10 by default) get a JSON 413. Both settings live in `backend/web_config.py` and are read from `backend/.env`.
 
+### Deploying the backend
+
+The backend runs on a free Hugging Face Docker Space. Every push to main that changes `backend/` runs the Deploy backend workflow, which tests the code, uploads `backend/` with its `Dockerfile` to the Space through `deploy_space.py`, copies `GROQ_API_KEY` and `GEMINI_API_KEY` into the Space secrets, waits for `/health` to answer and then calls `/health`, `/api/documents` and a CORS preflight on the live server. That check calls no model, so a deploy spends none of the free tier quota. The image downloads the embedding model while it builds and serves the app with gunicorn on port 7860. The workflow needs the `HF_TOKEN` repository secret (a Hugging Face token with write access) and at least one provider key. The Space is called `study-pilot` under the token's account unless the `HF_SPACE_NAME` repository variable says otherwise. SQLite lives inside the container for now, so uploaded documents disappear whenever the Space restarts.
+
 ### A quick tour
 
 1. Open http://localhost:3000 and click **+ Add Source** to upload a PDF, text or markdown file.
@@ -132,6 +136,8 @@ backend/
   routes/common.py        model helpers and the generated content cache
   routes/generation.py    upload, flashcard, quiz, mind map and mini game routes
   web_config.py           CORS origins, upload size limit and upload type checks
+  Dockerfile              image for the Hugging Face Docker Space
+  deploy_space.py         pushes the backend to the Space and checks the live API
   llm.py                  Groq and Gemini provider module with fallback
   smoke_llm.py            live check that each provider answers
   check_imports.py        imports every module to catch missing packages

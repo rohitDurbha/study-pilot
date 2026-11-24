@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+tests
+studybuddy.db
+static/*.mp3
+chroma_db
+models

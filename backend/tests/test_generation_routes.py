@@ -233,3 +233,13 @@ def test_cors_allows_only_the_configured_frontend(client):
 
     assert allowed.headers.get("Access-Control-Allow-Origin") == "http://localhost:3000"
     assert "Access-Control-Allow-Origin" not in refused.headers
+
+
+def test_health_lists_the_providers_with_a_key_without_calling_them(client, monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_test")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    resp = client.get("/health")
+
+    assert resp.status_code == 200
+    assert resp.get_json() == {"status": "ok", "llm_providers": ["groq"]}
