@@ -12,7 +12,7 @@ Every setting lives in LLMConfig and is read from environment variables.
     GEMINI_API_KEY          key from aistudio.google.com (free tier)
     LLM_PROVIDERS           comma separated order, default "groq,gemini"
     GROQ_MODEL              default "openai/gpt-oss-120b"
-    GEMINI_MODEL            default "gemini-flash-latest"
+    GEMINI_MODEL            default "gemini-3.5-flash-lite"
     GROQ_REASONING_EFFORT   low, medium or high for reasoning models, default "low"
     LLM_TIMEOUT_SECONDS     per request timeout, default 60
     LLM_PDF_TEXT_LIMIT      most characters of PDF text sent to Groq, default 60000
@@ -40,7 +40,7 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:ge
 
 DEFAULT_PROVIDERS = ("groq", "gemini")
 DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
-DEFAULT_GEMINI_MODEL = "gemini-flash-latest"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_REASONING_EFFORT = "low"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_PDF_TEXT_LIMIT = 60_000

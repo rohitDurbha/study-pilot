@@ -50,10 +50,12 @@ Every prompt the backend sends goes through `backend/llm.py`, which talks to Gro
 | `GEMINI_API_KEY` | empty | Free key from aistudio.google.com |
 | `LLM_PROVIDERS` | `groq,gemini` | Order in which providers are tried |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Model used on Groq |
-| `GEMINI_MODEL` | `gemini-flash-latest` | Model used on Gemini |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Model used on Gemini |
 | `GROQ_REASONING_EFFORT` | `low` | Reasoning effort for the gpt-oss models on Groq |
 | `LLM_TIMEOUT_SECONDS` | `60` | Timeout for each request |
 | `LLM_PDF_TEXT_LIMIT` | `60000` | Most characters of PDF text sent to Groq |
+
+Both keys are on free tiers. Groq lists 30 requests and 8K tokens per minute and 1K requests and 200K tokens per day for `openai/gpt-oss-120b`. Gemini publishes its free tier limits only in Google AI Studio, so check them there. The Gemini default is the stable `gemini-3.5-flash-lite` rather than the `gemini-flash-latest` alias, which now points at a preview model that answered 503 and timed out in the first smoke test runs.
 
 After setting a key, run `python3 smoke_llm.py` inside `backend/` to send one short prompt to each provider separately. It prints the model, the response time and the token counts for each one, marks a provider without a key as skipped, and exits with a nonzero code if any provider that has a key fails. Use `--provider gemini` to check a single provider and `--json-mode` to confirm that JSON replies parse. A provider that answers HTTP 503 because the model is overloaded is retried twice and then listed as busy, which does not fail the run, since the key and model name were accepted. The LLM smoke test workflow runs the script every day with the repository secrets and on every push that changes `llm.py`. Each run sends real requests, so it uses a small slice of your free quota.
 
