@@ -19,6 +19,12 @@ import {
   computeGazeDeviation,
 } from './signal-processor';
 
+/** Keep in step with the exact @mediapipe/tasks-vision version in package.json. */
+export const MEDIAPIPE_VERSION = '0.10.35';
+export const MEDIAPIPE_WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}/wasm`;
+export const FACE_LANDMARKER_MODEL_URL =
+  'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+
 type FocusEventCallback = (event: FocusEvent) => void;
 
 export class FocusEngine {
@@ -66,21 +72,30 @@ export class FocusEngine {
     // Dynamic import to avoid SSR/bundler issues with WASM
     const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
 
-    const vision = await FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-    );
+    // The WASM runtime must match the JS package exactly, so it is pinned to
+    // the installed version instead of @latest, which drifts ahead of it.
+    const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
 
-    this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath:
-          'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
-        delegate: 'GPU',
-      },
-      runningMode: 'VIDEO',
-      numFaces: 1,
-      outputFaceBlendshapes: false,
-      outputFacialTransformationMatrixes: false,
-    });
+    const createLandmarker = (delegate: 'GPU' | 'CPU') =>
+      FaceLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: FACE_LANDMARKER_MODEL_URL,
+          delegate,
+        },
+        runningMode: 'VIDEO',
+        numFaces: 1,
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false,
+      });
+
+    // Browsers without WebGL2 (and some locked down laptops) refuse the GPU
+    // delegate, so fall back to the CPU instead of leaving focus detection off.
+    try {
+      this.faceLandmarker = await createLandmarker('GPU');
+    } catch (gpuError) {
+      console.warn('MediaPipe GPU delegate unavailable, using the CPU', gpuError);
+      this.faceLandmarker = await createLandmarker('CPU');
+    }
   }
 
   /**

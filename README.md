@@ -160,7 +160,6 @@ backend/
   rag_pipeline.py         chunking, embeddings, vector store and retrieval
   eval_harness.py         compares RAG answers against full context answers
   knowledge_graph.py      concept extraction for the knowledge graph
-  focus_server.py         placeholder focus service slated for removal
 ```
 
 The upstream repository also holds Word reports, planning notes, contribution logs and the scripts that generated them. Those files are about the capstone write-up rather than the app, so they were left out of this port.
