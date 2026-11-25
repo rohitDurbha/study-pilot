@@ -138,9 +138,15 @@ app/
     session/              end of session report
 components/ui/            shared shadcn/ui components
 backend/
-  main.py                 builds the Flask app and the routes not yet moved
+  main.py                 builds the Flask app and registers the route blueprints
   routes/common.py        model helpers and the generated content cache
   routes/generation.py    upload, flashcard, quiz, mind map and mini game routes
+  routes/documents.py     document, knowledge graph and section progress routes
+  routes/sessions.py      study session, focus, distraction and analytics routes
+  routes/agent.py         agent chat, history, recap and decision routes
+  routes/media.py         text to speech and the audio files it serves
+  routes/evaluation.py    RAG evaluation and reindex routes
+  json_reply.py           reads JSON from model replies and request bodies
   web_config.py           CORS origins, upload size limit and upload type checks
   Dockerfile              image for the Hugging Face Docker Space
   deploy_space.py         pushes the backend to the Space and checks the live API

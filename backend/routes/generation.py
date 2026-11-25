@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 
 import database
 from database import Document, DocumentSection, SectionProgress
-from routes.common import ask_llm, extract_json, get_cached_content, save_content_cache
+from routes.common import ask_llm, extract_json, get_cached_content, json_body, save_content_cache
 from web_config import UploadRejected, classify_upload
 
 generation_bp = Blueprint("generation", __name__)
@@ -125,8 +125,8 @@ def upload_pdf():
 
 @generation_bp.route("/generate-flashcards", methods=["POST"])
 def generate_flashcards():
+    data = json_body()
     try:
-        data = request.get_json()
         summarized_text = data.get("text")
         document_id = data.get("document_id")
         section_id = data.get("section_id")
@@ -177,8 +177,8 @@ Return as a raw JSON array only:
 
 @generation_bp.route("/generate-quiz", methods=["POST"])
 def generate_quiz():
+    data = json_body()
     try:
-        data = request.get_json()
         summarized_text = data.get("text")
         document_id = data.get("document_id")
         section_id = data.get("section_id")
@@ -239,8 +239,8 @@ Return as a raw JSON array only:
 
 @generation_bp.route("/generate-mindmap", methods=["POST"])
 def generate_mindmap():
+    data = json_body()
     try:
-        data = request.get_json()
         summarized_text = data.get("text")
         document_id = data.get("document_id")
         section_id = data.get("section_id")
@@ -293,8 +293,8 @@ Return ONLY valid JSON in this exact format, no explanation:
 
 @generation_bp.route("/generate-mini-game", methods=["POST"])
 def generate_mini_game():
+    data = json_body()
     try:
-        data = request.get_json()
         summarized_text = data.get("text")
         document_id = data.get("document_id")
         section_id = data.get("section_id")

@@ -5,12 +5,20 @@ content cache stores generated flashcards, quizzes, mind maps and mini games so
 the same section is not sent to the model twice.
 """
 
-import json
-import re
-
 import database
 import llm
 from database import GeneratedContent
+from json_reply import extract_json, json_body
+
+__all__ = [
+    "DEFAULT_MAX_TOKENS",
+    "ask_llm",
+    "ask_llm_with_pdf",
+    "extract_json",
+    "get_cached_content",
+    "json_body",
+    "save_content_cache",
+]
 
 DEFAULT_MAX_TOKENS = 4096
 
@@ -23,14 +31,6 @@ def ask_llm(prompt: str, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
 def ask_llm_with_pdf(pdf_bytes: bytes, prompt: str, max_tokens: int = DEFAULT_MAX_TOKENS) -> str:
     """Send a PDF and a prompt. Groq gets the extracted text, Gemini reads the PDF itself."""
     return llm.generate_text(prompt, pdf_bytes=pdf_bytes, max_tokens=max_tokens)
-
-
-def extract_json(text: str):
-    """Robustly extract JSON from a model reply, stripping markdown fences."""
-    cleaned = re.sub(r"^```(?:json|JSON)?\s*\n?", "", text, flags=re.MULTILINE)
-    cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
-    cleaned = cleaned.strip()
-    return json.loads(cleaned)
 
 
 def get_cached_content(document_id: str, content_type: str, section_id: str = None):

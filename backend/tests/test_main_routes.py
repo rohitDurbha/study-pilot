@@ -106,7 +106,6 @@ def test_rag_reindex_route_stores_chunks_in_sqlite(client, monkeypatch):
     database.Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     monkeypatch.setattr(database, "SessionLocal", Session)
-    monkeypatch.setattr(main, "SessionLocal", Session)
     embeddings.set_embedder(LetterEmbedder())
 
     try:

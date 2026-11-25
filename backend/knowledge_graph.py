@@ -1,20 +1,16 @@
 """Knowledge graph extraction through the shared language model module."""
-import json
-import re
 
 from dotenv import load_dotenv
 
 import llm
+from json_reply import extract_json
 
 load_dotenv()
 
 GRAPH_MAX_TOKENS = 4096
 
 
-def extract_json_from_response(text: str):
-    cleaned = re.sub(r"^```(?:json|JSON)?\s*\n?", "", text, flags=re.MULTILINE)
-    cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
-    return json.loads(cleaned.strip())
+extract_json_from_response = extract_json
 
 
 def extract_knowledge_graph(summary_text: str) -> dict:

@@ -1,12 +1,9 @@
 """Document processing — splits PDF into structured sections with concepts."""
-import json
-import re
-import uuid
-import logging
 
 from dotenv import load_dotenv
 
 import llm
+from json_reply import extract_json
 
 load_dotenv()
 
@@ -14,10 +11,7 @@ load_dotenv()
 SECTION_MAX_TOKENS = 8192
 
 
-def extract_json_from_response(text: str):
-    cleaned = re.sub(r"^```(?:json|JSON)?\s*\n?", "", text, flags=re.MULTILINE)
-    cleaned = re.sub(r"\n?```\s*$", "", cleaned, flags=re.MULTILINE)
-    return json.loads(cleaned.strip())
+extract_json_from_response = extract_json
 
 
 def process_document(pdf_bytes: bytes, filename: str) -> dict:

@@ -65,7 +65,7 @@ def test_a_reply_that_is_not_json_raises(replies):
     queue, _ = replies
     queue.append("Sorry, I cannot help with that.")
 
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(ValueError):
         document_processor.process_text_document("short notes", "notes.txt")
 
 
