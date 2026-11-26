@@ -46,6 +46,9 @@ Every session opens the live link first, adds anything broken here, and fixes th
 - [x] 5. Move focus detection fully into the browser with the MediaPipe package already in package.json, and delete focus_server.py, which returns random values. The browser engine in app/lib/focus-detection already did the work, so focus_server.py is gone, the WASM runtime is pinned to the installed 0.10.35 package instead of @latest, the GPU delegate falls back to the CPU, and CI checks that the versions stay in step.
 - [x] 6. Done in step b of the Live link section. Upgrade Next.js 15.3.1 to a patched release because of later security advisories.
 - [ ] 7. Host for free. Frontend on Vercel, backend on Hugging Face Spaces or Render, and persistent data in Turso or Supabase free tiers because free containers lose local SQLite files.
+  - [x] a. Read the database location from `DATABASE_URL` with the local SQLite file as the default, and let SQLite connections cross gunicorn's threads and wait for a writer instead of failing with "database is locked".
+  - [ ] b. Once Rohit has a free Turso database, add its SQLAlchemy driver, pass the URL and auth token to the Space as secrets, and run the route tests against it.
+  - [ ] c. Copy any documents already on the Space into the durable database once, then drop the warning about uploads resetting from the README.
 - [ ] 8. Tests, CI and a README with setup steps.
 
 ## Needs Rohit

@@ -4,7 +4,27 @@ from sqlalchemy import create_engine, Column, String, Text, Float, Integer, Date
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "studybuddy.db")
-engine = create_engine(f"sqlite:///{DB_PATH}", echo=False)
+
+
+def database_url(environ=None) -> str:
+    """Return DATABASE_URL when it is set, otherwise the local SQLite file.
+
+    Free containers lose local files when they restart, so a hosted copy can
+    point DATABASE_URL at durable storage without any code change.
+    """
+    environ = os.environ if environ is None else environ
+    return (environ.get("DATABASE_URL") or "").strip() or f"sqlite:///{DB_PATH}"
+
+
+def make_engine(url: str):
+    # gunicorn serves requests from several threads, so SQLite connections
+    # may be used outside the thread that opened them and should wait a little
+    # for a writer instead of failing with "database is locked".
+    connect_args = {"check_same_thread": False, "timeout": 30} if url.startswith("sqlite") else {}
+    return create_engine(url, echo=False, connect_args=connect_args)
+
+
+engine = make_engine(database_url())
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
