@@ -5,6 +5,7 @@ The workflow in .github/workflows/deploy-backend.yml runs
     python deploy_space.py deploy     # create the Space, copy the keys, upload the code
     python deploy_space.py wait       # poll until /health answers or the build fails
     python deploy_space.py check      # call real API routes on the live backend
+                                      # (BACKEND_URL points it at any other copy)
     python deploy_space.py url        # print the Space URL for the frontend build
     python deploy_space.py set-origin # allow SITE_URL through CORS on the Space
 
@@ -250,9 +251,13 @@ def check(environ=None, request=http_request) -> int:
     """Call real routes on the live backend and fail on anything unexpected.
 
     No language model is called, so the check costs no free tier quota.
+    BACKEND_URL overrides the Space URL, which lets CI run the same check
+    against the Docker image before it is ever pushed.
     """
     environ = os.environ if environ is None else environ
-    base = space_url(environ["HF_SPACE_REPO_ID"])
+    base = (environ.get("BACKEND_URL") or "").strip().rstrip("/")
+    if not base:
+        base = space_url(environ["HF_SPACE_REPO_ID"])
     problems = []
 
     status, _, body = request(base + "/health")

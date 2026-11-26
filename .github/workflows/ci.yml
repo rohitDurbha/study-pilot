@@ -23,6 +23,45 @@ jobs:
       - run: python check_imports.py
       - run: python -m pytest -q
 
+  # Builds the exact image the Hugging Face Space runs, starts it as user 1000
+  # the way Spaces do, and calls it with the same check the deploy uses. A
+  # Dockerfile mistake then fails here instead of on the live site. The dummy
+  # key only makes /health list a provider, and no model is ever called.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build the Space image
+        run: docker build -t studypilot-api backend
+      - name: Start the container
+        run: |
+          docker run -d --name api -p 7860:7860 \
+            -e GROQ_API_KEY=ci-placeholder \
+            -e FRONTEND_ORIGIN=http://localhost:3000 \
+            studypilot-api
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --max-time 5 http://localhost:7860/health; then
+              echo
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs api
+          exit 1
+      - name: Call the container like the live check does
+        working-directory: backend
+        env:
+          BACKEND_URL: http://localhost:7860
+          FRONTEND_ORIGIN: http://localhost:3000
+        run: python deploy_space.py check
+      - name: Container logs
+        if: always()
+        run: docker logs api || true
+
   frontend:
     runs-on: ubuntu-latest
     steps:

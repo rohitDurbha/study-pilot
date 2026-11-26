@@ -100,6 +100,20 @@ def test_check_passes_on_a_healthy_backend(capsys):
     assert deploy_space.check(env, request=fake_backend({"status": "ok", "llm_providers": ["groq"]})) == 0
 
 
+def test_check_uses_backend_url_instead_of_the_space(capsys):
+    seen = []
+    inner = fake_backend({"status": "ok", "llm_providers": ["groq"]}, cors_origin="http://localhost:3000")
+
+    def request(url, method="GET", headers=None, timeout=60):
+        seen.append(url)
+        return inner(url, method=method, headers=headers, timeout=timeout)
+
+    env = {"BACKEND_URL": "http://localhost:7860/", "FRONTEND_ORIGIN": "http://localhost:3000"}
+    assert deploy_space.check(env, request=request) == 0
+    assert seen and all(url.startswith("http://localhost:7860/") for url in seen)
+    assert "//health" not in "".join(seen)
+
+
 def test_check_fails_without_providers_or_with_the_wrong_cors_origin(capsys):
     env = {"HF_SPACE_REPO_ID": "a/b", "FRONTEND_ORIGIN": "https://site.vercel.app"}
     request = fake_backend({"status": "ok", "llm_providers": []}, cors_origin="http://localhost:3000")

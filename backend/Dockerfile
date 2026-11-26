@@ -9,8 +9,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EMBEDDING_CACHE_DIR=/app/models
 
 # Hugging Face runs Spaces as user 1000, so the app files belong to that user.
+# WORKDIR creates /app as root and COPY --chown only changes the copied files,
+# so /app itself is handed over too. The app creates studybuddy.db, static/
+# and models/ inside it at runtime and would fail to start otherwise.
 RUN useradd --create-home --uid 1000 app
 WORKDIR /app
+RUN chown app:app /app
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
